@@ -1,11 +1,8 @@
 # =============================================================================
-# Docker Compose - Video Watermark Removal Application (ProPainter)
+# Docker Compose - Video Watermark Removal Application (OpenCV Engine)
 # =============================================================================
-# CPU-only configuration for Intel Iris Xe hardware.
-# No NVIDIA/GPU pass-through required.
-#
-# NOTE: ProPainter runs on CPU. Processing time depends on video length and
-# resolution. Videos are automatically downscaled to 480p for inference.
+# CPU-optimized configuration for Intel Iris Xe hardware.
+# Uses OpenCV Telea inpainting — no deep learning, no GPU required.
 # =============================================================================
 
 services:
@@ -25,11 +22,13 @@ services:
     # -------------------------------------------------------------------------
     # - ./uploads:/app/uploads  — Persists processed video artifacts on the host
     # - ./static:/app/static    — Mounts static frontend for hot-reloading
+    # - Source files mounted for development convenience (no rebuild needed)
     volumes:
       - ./uploads:/app/uploads
       - ./static:/app/static
       - ./main.py:/app/main.py
       - ./inpainter.py:/app/inpainter.py
+      - ./video_utils.py:/app/video_utils.py
 
     # -------------------------------------------------------------------------
     # Environment variables
@@ -40,23 +39,3 @@ services:
 
     # Restart on failure, but not on manual stop
     restart: unless-stopped
-
-    # -------------------------------------------------------------------------
-    # NOTE: GPU / NVIDIA support
-    # -------------------------------------------------------------------------
-    # This machine has Intel Iris Xe GPU which is incompatible with NVIDIA
-    # CUDA. The GPU block below is commented out.
-    #
-    # If you ever move to an NVIDIA machine, uncomment this block and rebuild:
-    #
-    # deploy:
-    #   resources:
-    #     reservations:
-    #       devices:
-    #         - driver: nvidia
-    #           count: all
-    #           capabilities: [gpu]
-    #
-    # And swap the base image in Dockerfile to:
-    #   FROM nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04
-    # -------------------------------------------------------------------------
