@@ -512,6 +512,51 @@ body {
     cursor: crosshair;
 }
 
+/* Custom Video Controls */
+.video-controls {
+    display: flex;
+    align-items: center;
+    gap: var(--space-md);
+    margin-bottom: var(--space-xl);
+    padding: var(--space-sm) var(--space-md);
+    background: var(--color-bg-glass);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+}
+
+.video-controls[hidden] {
+    display: none !important;
+}
+
+.video-controls__btn {
+    background: transparent;
+    border: none;
+    color: var(--color-text);
+    font-size: var(--font-size-md);
+    font-weight: 500;
+    cursor: pointer;
+    padding: var(--space-xs) var(--space-sm);
+    border-radius: var(--radius-sm);
+    min-width: 80px;
+    text-align: center;
+}
+
+.video-controls__btn:hover {
+    background: var(--color-border);
+}
+
+.video-controls__slider {
+    flex: 1;
+    cursor: pointer;
+}
+
+.video-controls__time {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-secondary);
+    min-width: 85px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
 
 /* --------------------------------------------------------------------------
    10. BUTTONS

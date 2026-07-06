@@ -42,6 +42,12 @@ const elements = {
     videoFrame:      document.getElementById("video-frame"),
     canvasMask:      document.getElementById("canvas-mask"),
 
+    // Video Controls
+    videoControls: document.getElementById("video-controls"),
+    btnPlayPause:  document.getElementById("btn-play-pause"),
+    videoSlider:   document.getElementById("video-slider"),
+    videoTime:     document.getElementById("video-time"),
+
     // Toolbar
     brushSize:      document.getElementById("brush-size"),
     brushSizeValue: document.getElementById("brush-size-value"),
@@ -103,6 +109,7 @@ function init() {
     setupUploadZone();
     setupToolbar();
     setupCanvasEvents();
+    setupVideoControls();
     setupActionButtons();
     setupToast();
 }
@@ -254,6 +261,60 @@ function loadVideoPlayer(taskId) {
     });
 }
 
+
+/* =========================================================================
+ * 1.5 VIDEO CONTROLS
+ * ========================================================================= */
+
+function setupVideoControls() {
+    const video = elements.videoFrame;
+    const playBtn = elements.btnPlayPause;
+    const slider = elements.videoSlider;
+    const timeDisplay = elements.videoTime;
+
+    // Toggle play/pause
+    playBtn.addEventListener("click", () => {
+        if (video.paused || video.ended) {
+            video.play();
+        } else {
+            video.pause();
+        }
+    });
+
+    // Update play/pause button text
+    video.addEventListener("play", () => playBtn.textContent = "⏸ Pause");
+    video.addEventListener("pause", () => playBtn.textContent = "▶ Play");
+
+    // Format seconds into M:SS
+    const formatTime = (timeInSeconds) => {
+        if (isNaN(timeInSeconds)) return "0:00";
+        const m = Math.floor(timeInSeconds / 60);
+        const s = Math.floor(timeInSeconds % 60);
+        return `${m}:${s.toString().padStart(2, '0')}`;
+    };
+
+    // Update slider and time display as video plays
+    video.addEventListener("timeupdate", () => {
+        if (!video.duration) return;
+        const progress = (video.currentTime / video.duration) * 100;
+        slider.value = progress;
+        timeDisplay.textContent = `${formatTime(video.currentTime)} / ${formatTime(video.duration)}`;
+    });
+
+    // Seek video when slider changes
+    slider.addEventListener("input", (e) => {
+        if (!video.duration) return;
+        const seekTime = (e.target.value / 100) * video.duration;
+        video.currentTime = seekTime;
+    });
+
+    // Initial time load
+    video.addEventListener("loadedmetadata", () => {
+        timeDisplay.textContent = `0:00 / ${formatTime(video.duration)}`;
+        // Show controls once video is loaded
+        elements.videoControls.hidden = false;
+    });
+}
 
 /* =========================================================================
  * 2. CANVAS MASK PAINTING
@@ -739,6 +800,9 @@ function resetApp() {
     // Reset progress bar
     elements.progressBarFill.style.width = "0%";
     elements.progressText.textContent = "Initializing…";
+    
+    // Hide video controls
+    elements.videoControls.hidden = true;
 
     // Re-enable process button
     elements.btnProcess.disabled = false;

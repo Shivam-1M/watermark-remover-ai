@@ -17,7 +17,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="/static/style.css?v=3.0.1">
+    <link rel="stylesheet" href="/static/style.css?v=3.0.2">
 </head>
 <body>
     <!-- ================================================================= -->
@@ -100,8 +100,17 @@
 
             <!-- Canvas container (video frame + mask overlay) -->
             <div class="canvas-container" id="canvas-container">
-                <video id="video-frame" aria-label="Video player" controls crossorigin="anonymous" playsinline></video>
+                <video id="video-frame" aria-label="Video player" crossorigin="anonymous" playsinline></video>
                 <canvas id="canvas-mask" aria-label="Watermark mask drawing surface"></canvas>
+            </div>
+
+            <!-- Custom Video Controls -->
+            <div class="video-controls" id="video-controls" hidden>
+                <button class="video-controls__btn" id="btn-play-pause" aria-label="Play or Pause">
+                    ▶ Play
+                </button>
+                <input type="range" class="video-controls__slider" id="video-slider" min="0" max="100" value="0" step="0.1" aria-label="Seek video">
+                <span class="video-controls__time" id="video-time">0:00 / 0:00</span>
             </div>
 
             <!-- Process button -->
@@ -162,6 +171,6 @@
 
     </main>
 
-    <script src="/static/app.js?v=3.0.1"></script>
+    <script src="/static/app.js?v=3.0.2"></script>
 </body>
 </html>
