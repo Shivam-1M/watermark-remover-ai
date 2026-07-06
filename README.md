@@ -10,10 +10,10 @@ A full-stack application that removes watermarks from videos using AI inpainting
 
 - **Drag & Drop Upload** — Upload videos up to 100 MB (MP4, AVI, MOV, MKV, WebM)
 - **Interactive Canvas Mask Editor** — Paint over watermarks with an adjustable brush, undo/clear support
-- **AI Inpainting Engine** — Frame-by-frame watermark removal with a pluggable model architecture
+- **AI Inpainting Engine** — Real ProPainter model (ICCV 2023) for temporal consistency
 - **Audio Preservation** — Automatically extracts and remuxes the original audio track
 - **Real-time Progress** — Live progress bar that polls the backend during processing
-- **GPU Acceleration Ready** — Docker configuration supports NVIDIA GPU pass-through via WSL2
+- **CPU-Optimized (Intel Iris Xe)** — Runs locally without NVIDIA GPU using automatic 480p downscaling
 - **Premium Dark UI** — Glassmorphism design with smooth gradients, animations, and responsive layout
 
 ---
@@ -46,8 +46,10 @@ watermark/
 │
 ├── main.py                  # FastAPI app — 5 REST endpoints
 ├── video_utils.py           # FFmpeg wrapper — audio/frame/video pipeline
-├── inpainter.py             # AI inpainting engine (mock + integration points)
+├── inpainter.py             # AI inpainting engine (ProPainter integration)
 │
+├── propainter/              # Cloned ProPainter model source code
+├── weights/                 # Pre-downloaded model checkpoints
 ├── uploads/                 # Runtime directory (gitignored)
 │
 └── static/
@@ -128,43 +130,26 @@ These can be changed in `docker-compose.yml` under the `environment` section.
 
 ## 🎮 GPU Acceleration (Optional)
 
-The app supports NVIDIA GPU pass-through for PyTorch-based model inference. This requires WSL2 with NVIDIA drivers.
+The current Docker configuration runs purely on **CPU** due to the original host machine running Intel Iris Xe graphics. Inference will be slow, but it works cross-platform.
 
-### Setup
+If you have an NVIDIA GPU, you can re-enable CUDA acceleration:
 
-1. Install NVIDIA GPU drivers for WSL2 on the **Windows host**
-2. Inside WSL2, install the NVIDIA Container Toolkit:
-   ```bash
-   sudo apt-get install -y nvidia-container-toolkit
-   sudo nvidia-ctk runtime configure --runtime=docker
-   sudo systemctl restart docker
-   ```
-3. Uncomment the GPU block in `docker-compose.yml`:
-   ```yaml
-   deploy:
-     resources:
-       reservations:
-         devices:
-           - driver: nvidia
-             count: all
-             capabilities: [gpu]
-   ```
+1. In `docker-compose.yml`, uncomment the `deploy` block.
+2. In `Dockerfile`, change the base image from `python:3.10-slim` back to `nvidia/cuda:11.8.0-cudnn8-runtime-ubuntu22.04` and reinstall python via apt.
+3. In `requirements.txt`, reinstall torch using the cu118 index url.
+4. In `inpainter.py`, change `DEVICE = torch.device("cpu")` to `"cuda"`.
 
 ---
 
 ## 🤖 AI Model Integration
 
-The current build uses **OpenCV's Telea inpainting** as a lightweight mock. The codebase is structured for drop-in replacement with a PyTorch model like [ProPainter](https://github.com/sczhou/ProPainter).
+The app uses the **ProPainter** deep learning model by Shangchen Zhou et al. (ICCV 2023).
 
-Search for `>>> INTEGRATION POINT` in `inpainter.py` to find the three injection sites:
+- **Optical Flow:** RAFT computes bidirectional flows.
+- **Flow Completion:** Fills the flow field within the watermark region.
+- **Inpainting:** A sliding-window transformer reconstructs the masked areas.
 
-| Location | Purpose |
-|----------|---------|
-| **Line ~30** | PyTorch / model imports |
-| **Line ~40** | Model loading (module-level singleton) |
-| **Line ~150** | Frame inference in `_inpaint_single_frame()` |
-
-Each integration point includes complete example code for tensor conversions and inference calls.
+To keep memory and compute manageable on a CPU, videos are automatically downscaled to 480p before processing, and upscaled afterward. The model weights are automatically downloaded into the Docker image during `docker-compose build`.
 
 ---
 
@@ -197,7 +182,7 @@ Each integration point includes complete example code for tensor conversions and
 |-------|-----------|
 | **Backend** | Python 3.10, FastAPI, Uvicorn |
 | **Video Processing** | FFmpeg (via ffmpeg-python) |
-| **AI Engine** | OpenCV (mock) / PyTorch + ProPainter (production) |
+| **AI Engine** | ProPainter (PyTorch) + RAFT |
 | **Frontend** | HTML5, Vanilla CSS, Vanilla JavaScript, Canvas API |
 | **Container** | Docker, NVIDIA CUDA 11.8 base image |
 | **Typography** | Inter (Google Fonts) |
@@ -206,14 +191,24 @@ Each integration point includes complete example code for tensor conversions and
 
 ## 📝 Development Log
 
-### v1.0.0 — Initial Release (2025-07-06)
+### v2.0.0 — ProPainter Integration (2026-07-06)
+
+**Replaced mock OpenCV engine with real deep learning inpainting**
+
+- ✅ Integrated ProPainter (ICCV 2023) sliding-window transformer architecture.
+- ✅ Integrated RAFT optical flow and RecurrentFlowCompleteNet for temporal consistency.
+- ✅ Added auto-downscaling to 480p for feasible CPU-bound processing.
+- ✅ Loaded models into a FastAPI lifespan startup event to eliminate per-request loading latency.
+- ✅ Baked model weights (~160MB) directly into the Docker image at build time.
+- ✅ Dropped NVIDIA/CUDA dependencies in favour of `python:3.10-slim` to support Intel Iris Xe hardware natively.
+
+### v1.0.0 — Initial Release (2026-07-06)
 
 **Full-stack scaffold with mock AI pipeline**
 
 - ✅ FastAPI backend with 5 REST endpoints
 - ✅ FFmpeg video processing pipeline (extract audio, split frames, reassemble + remux)
 - ✅ Mock inpainting engine using OpenCV Telea algorithm
-- ✅ ProPainter integration points with example PyTorch code
 - ✅ Drag-and-drop video upload with client + server validation
 - ✅ Interactive HTML5 Canvas mask editor with brush tool, undo, and clear
 - ✅ Real-time progress bar with `/status` polling

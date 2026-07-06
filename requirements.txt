@@ -13,12 +13,22 @@ python-multipart==0.0.20
 ffmpeg-python==0.2.0
 
 # --- AI / Deep Learning ---
-# PyTorch with CUDA 11.8 support (installed via pip with index-url)
-# NOTE: For GPU support, install torch separately with:
-#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
-# For the mock/scaffold version, CPU-only torch is sufficient.
+# CPU-only PyTorch (no CUDA). We have Intel Iris Xe hardware which is
+# incompatible with NVIDIA CUDA. PyTorch CPU is the safest and most
+# compatible option.
 torch>=2.0.0
 torchvision>=0.15.0
+
+# --- ProPainter dependencies ---
+# These mirror ProPainter's own requirements.txt, pinned for stability.
+scipy>=1.10.0
+einops>=0.6.0
+imageio>=2.31.0
+imageio-ffmpeg>=0.4.9
+scikit-image>=0.21.0
+av>=10.0.0
+addict>=2.4.0
+pyyaml>=6.0
 
 # --- Image processing ---
 opencv-python-headless==4.10.0.84

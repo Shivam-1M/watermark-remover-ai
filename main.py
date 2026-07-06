@@ -2,7 +2,26 @@
 =============================================================================
 main.py — FastAPI Application Entry Point
 =============================================================================
-Video Watermark Removal Application
+Video Watermark Removal Application — ProPainter Integration
+
+Endpoints:
+    POST   /upload           Upload a video file for processing
+    GET    /frame/{task_id}  Retrieve the first frame of the uploaded video
+    POST   /process          Submit a mask and start background inpainting
+    GET    /status/{task_id} Poll the progress of the inpainting task
+    GET    /download/{task_id} Download the final processed video
+
+Security Notes:
+    - File uploads are validated by extension allow-list and size limit.
+    - Uploaded files are renamed to UUIDs to prevent path traversal.
+    - The uploads directory is outside the web root static directory.
+    - TODO(security): Add authentication/authorization for production use.
+    - TODO(security): Add rate limiting to all API endpoints.
+    - TODO(security): Implement CSRF protection if cookie-based auth is added.
+    - TODO(security): Integrate malware scanning for uploaded files.
+    - TODO(security): Add HTTPS/TLS termination via reverse proxy in production.
+=============================================================================
+"""
 
 Endpoints:
     POST   /upload           Upload a video file for processing
@@ -25,8 +44,8 @@ Security Notes:
 
 import os
 import uuid
-import json
 import logging
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from fastapi import (
@@ -66,12 +85,34 @@ UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
 ALLOWED_EXTENSIONS = {".mp4", ".avi", ".mov", ".mkv", ".webm"}
 
 # ---------------------------------------------------------------------------
+# FastAPI lifespan — load AI models once at startup
+# ---------------------------------------------------------------------------
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Load the ProPainter model weights when the server starts.
+    This runs once before the first request and prevents per-request latency.
+    """
+    logger.info("Loading ProPainter models at startup...")
+    try:
+        inpainter.load_models()
+        logger.info("ProPainter models ready.")
+    except Exception as e:
+        logger.error("Failed to load ProPainter models: %s", str(e))
+        # Do not crash the server — individual /process requests will fail
+        # with a descriptive error if the models couldn't be loaded.
+    yield
+    # Cleanup (if needed) goes here
+
+
+# ---------------------------------------------------------------------------
 # FastAPI app initialization
 # ---------------------------------------------------------------------------
 app = FastAPI(
     title="Video Watermark Remover",
-    description="Self-contained video watermark removal using AI inpainting.",
-    version="1.0.0",
+    description="Self-contained video watermark removal using ProPainter AI inpainting.",
+    version="2.0.0",
+    lifespan=lifespan,
 )
 
 # ---------------------------------------------------------------------------
