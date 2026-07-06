@@ -6,7 +6,8 @@ Video Watermark Removal Application — OpenCV Inpainting Engine
 
 Endpoints:
     POST   /upload           Upload a video file for processing
-    GET    /frame/{task_id}  Retrieve the first frame of the uploaded video
+    GET    /frame/{task_id}  Retrieve the first frame of the uploaded video (deprecated)
+    GET    /video/{task_id}  Stream the uploaded video for playback
     POST   /process          Submit a mask and start background inpainting
     GET    /status/{task_id} Poll the progress of the inpainting task
     GET    /download/{task_id} Download the final processed video
@@ -160,8 +161,7 @@ async def upload_video(file: UploadFile = File(...)):
     Upload a video file for watermark removal.
 
     The file is validated by extension and size, then saved with a UUID
-    filename to prevent path traversal attacks. The first frame is
-    automatically extracted for the frontend canvas.
+    filename to prevent path traversal attacks.
 
     Returns:
         JSON with the assigned task_id.
@@ -203,17 +203,6 @@ async def upload_video(file: UploadFile = File(...)):
     logger.info(
         "Uploaded video for task %s (%d bytes, ext=%s)", task_id, total_bytes, ext
     )
-
-    # --- Extract the first frame for the frontend canvas ---
-    try:
-        first_frame_path = task_dir / "first_frame.png"
-        video_utils.get_first_frame(str(video_path), str(first_frame_path))
-    except Exception as e:
-        logger.error("Frame extraction failed for task %s: %s", task_id, str(e))
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to extract first frame from video.",
-        )
 
     # --- Initialize task status ---
     task_store[task_id] = {
@@ -257,6 +246,40 @@ async def get_frame(task_id: str):
         headers={
             "X-Content-Type-Options": "nosniff",
             "Cache-Control": "no-store",
+        },
+    )
+
+
+@app.get("/video/{task_id}")
+async def get_video(task_id: str):
+    """
+    Stream the uploaded video file for playback in the mask editor.
+    """
+    # Sanitize task_id: must be a valid UUID to prevent path traversal
+    try:
+        uuid.UUID(task_id, version=4)
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid task ID format.")
+
+    if task_id not in task_store:
+        raise HTTPException(status_code=404, detail="Task not found.")
+        
+    video_path = Path(task_store[task_id]["video_path"])
+    
+    if not video_path.is_file():
+        raise HTTPException(status_code=404, detail="Video not found.")
+
+    # Resolve and verify the path is within the uploads directory
+    resolved = video_path.resolve()
+    if not str(resolved).startswith(str(UPLOAD_DIR.resolve()) + os.sep):
+        raise HTTPException(status_code=403, detail="Access denied.")
+
+    return FileResponse(
+        str(resolved),
+        media_type="video/mp4",
+        headers={
+            "X-Content-Type-Options": "nosniff",
+            "Accept-Ranges": "bytes",
         },
     )
 

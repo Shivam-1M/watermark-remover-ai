@@ -5,7 +5,7 @@ video_utils.py — FFmpeg Video Processing Pipeline
 Utility functions for video manipulation using ffmpeg-python.
 
 Functions:
-    get_first_frame()   — Extract the very first frame as a PNG image.
+
     extract_audio()     — Separate the audio track from a video file.
     split_frames()      — Decompose a video into numbered PNG frames.
     reassemble_video()  — Recompose PNG frames into an MP4 with audio.
@@ -30,34 +30,6 @@ import subprocess
 import ffmpeg
 
 logger = logging.getLogger("watermark-app.video_utils")
-
-
-def get_first_frame(video_path: str, output_path: str) -> None:
-    """
-    Extract the first frame of a video and save it as a PNG image.
-
-    This frame is displayed on the frontend canvas for mask painting.
-
-    Args:
-        video_path:  Absolute path to the input video file.
-        output_path: Absolute path for the output PNG image.
-
-    Raises:
-        RuntimeError: If ffmpeg fails to extract the frame.
-    """
-    try:
-        (
-            ffmpeg
-            .input(video_path, ss=0)        # Seek to the beginning
-            .output(output_path, vframes=1)  # Extract exactly 1 frame
-            .overwrite_output()              # Overwrite if exists
-            .run(quiet=True, capture_stderr=True)
-        )
-        logger.info("Extracted first frame: %s", output_path)
-    except ffmpeg.Error as e:
-        stderr = e.stderr.decode("utf-8", errors="replace") if e.stderr else ""
-        logger.error("FFmpeg first frame extraction failed: %s", stderr)
-        raise RuntimeError("Failed to extract first frame from video.")
 
 
 def extract_audio(video_path: str, audio_path: str) -> None:

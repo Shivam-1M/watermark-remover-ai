@@ -497,13 +497,14 @@ body {
     min-height: 200px;
 }
 
-.canvas-container canvas {
+.canvas-container canvas,
+.canvas-container video {
     display: block;
     max-width: 100%;
     height: auto;
 }
 
-/* The mask canvas sits on top of the frame canvas */
+/* The mask canvas sits on top of the video player */
 #canvas-mask {
     position: absolute;
     top: 0;

@@ -37,9 +37,9 @@ const elements = {
     uploadStatusText:  document.getElementById("upload-status-text"),
     fileInput:         document.getElementById("file-input"),
 
-    // Canvas
+    // Canvas / Video
     canvasContainer: document.getElementById("canvas-container"),
-    canvasFrame:     document.getElementById("canvas-frame"),
+    videoFrame:      document.getElementById("video-frame"),
     canvasMask:      document.getElementById("canvas-mask"),
 
     // Toolbar
@@ -75,7 +75,6 @@ const state = {
     maskHistory: [],            // Array of ImageData snapshots for undo
     maxHistorySize: 30,         // Maximum number of undo steps
     pollInterval: null,         // setInterval ID for status polling
-    frameImage: null,           // The loaded video frame Image object
 };
 
 // Accepted video MIME types (client-side pre-validation)
@@ -205,8 +204,8 @@ async function handleFileUpload(file) {
 
         elements.uploadStatusText.textContent = "Loading preview…";
 
-        // Load the first frame onto the canvas
-        await loadFirstFrame(state.taskId);
+        // Load the video into the player
+        await loadVideoPlayer(state.taskId);
 
         // Transition to the mask editor step
         showSection("mask");
@@ -221,29 +220,20 @@ async function handleFileUpload(file) {
 
 
 /**
- * Fetch the first frame image and draw it on the canvas.
+ * Fetch the uploaded video and load it into the video player.
  *
  * @param {string} taskId - The task UUID.
  */
-function loadFirstFrame(taskId) {
+function loadVideoPlayer(taskId) {
     return new Promise((resolve, reject) => {
-        const img = new Image();
+        const video = elements.videoFrame;
 
-        img.onload = () => {
-            state.frameImage = img;
-
-            // Set both canvases to the image dimensions
-            const frameCanvas = elements.canvasFrame;
+        video.onloadedmetadata = () => {
             const maskCanvas = elements.canvasMask;
 
-            frameCanvas.width = img.width;
-            frameCanvas.height = img.height;
-            maskCanvas.width = img.width;
-            maskCanvas.height = img.height;
-
-            // Draw the frame image
-            const frameCtx = frameCanvas.getContext("2d");
-            frameCtx.drawImage(img, 0, 0);
+            // Set the mask canvas to match the true video dimensions
+            maskCanvas.width = video.videoWidth;
+            maskCanvas.height = video.videoHeight;
 
             // Initialize the mask canvas as fully transparent
             const maskCtx = maskCanvas.getContext("2d");
@@ -255,12 +245,12 @@ function loadFirstFrame(taskId) {
             resolve();
         };
 
-        img.onerror = () => {
-            reject(new Error("Failed to load video frame preview."));
+        video.onerror = () => {
+            reject(new Error("Failed to load video preview."));
         };
 
-        // Fetch the frame image from the backend
-        img.src = "/frame/" + encodeURIComponent(taskId);
+        // Stream the video from the backend
+        video.src = "/video/" + encodeURIComponent(taskId);
     });
 }
 
@@ -739,7 +729,7 @@ function resetApp() {
     // Reset state
     state.taskId = null;
     state.maskHistory = [];
-    state.frameImage = null;
+    state.pollInterval = null;
 
     // Reset upload zone
     elements.uploadZoneContent.hidden = false;
