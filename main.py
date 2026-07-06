@@ -23,25 +23,6 @@ Security Notes:
 =============================================================================
 """
 
-Endpoints:
-    POST   /upload           Upload a video file for processing
-    GET    /frame/{task_id}  Retrieve the first frame of the uploaded video
-    POST   /process          Submit a mask and start background inpainting
-    GET    /status/{task_id} Poll the progress of the inpainting task
-    GET    /download/{task_id} Download the final processed video
-
-Security Notes:
-    - File uploads are validated by extension allow-list and size limit.
-    - Uploaded files are renamed to UUIDs to prevent path traversal.
-    - The uploads directory is outside the web root static directory.
-    - TODO(security): Add authentication/authorization for production use.
-    - TODO(security): Add rate limiting to all API endpoints.
-    - TODO(security): Implement CSRF protection if cookie-based auth is added.
-    - TODO(security): Integrate malware scanning for uploaded files.
-    - TODO(security): Add HTTPS/TLS termination via reverse proxy in production.
-=============================================================================
-"""
-
 import os
 import uuid
 import logging
