@@ -1,0 +1,64 @@
+# =============================================================================
+# Docker Compose - Video Watermark Removal Application
+# =============================================================================
+# Prerequisites for GPU support in WSL2:
+#   1. Install NVIDIA drivers for WSL2 on the Windows host.
+#   2. Install the NVIDIA Container Toolkit inside WSL2:
+#      $ sudo apt-get install -y nvidia-container-toolkit
+#      $ sudo nvidia-ctk runtime configure --runtime=docker
+#      $ sudo systemctl restart docker
+# =============================================================================
+
+services:
+  watermark-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    # Container name for easy reference
+    container_name: watermark-remover
+
+    # Map host port 8000 to container port 8000
+    ports:
+      - "8000:8000"
+
+    # -------------------------------------------------------------------------
+    # Volume mappings (WSL2-compatible)
+    # -------------------------------------------------------------------------
+    # - ./uploads:/app/uploads  — Persists processed video artifacts on the host
+    #   so they survive container restarts. Uses default WSL2 file permissions.
+    # - ./static:/app/static    — Mount static frontend files for hot-reloading
+    #   during development (no rebuild needed for UI changes).
+    volumes:
+      - ./uploads:/app/uploads
+      - ./static:/app/static
+
+    # -------------------------------------------------------------------------
+    # NVIDIA GPU pass-through configuration (OPTIONAL)
+    # -------------------------------------------------------------------------
+    # Uncomment the block below ONLY if you have:
+    #   1. An NVIDIA GPU
+    #   2. NVIDIA drivers for WSL2 installed on the Windows host
+    #   3. NVIDIA Container Toolkit installed in WSL2
+    #
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+    # -------------------------------------------------------------------------
+    # Environment variables
+    # -------------------------------------------------------------------------
+    environment:
+      # Uncomment these if GPU is enabled:
+      # - NVIDIA_VISIBLE_DEVICES=all
+      # - NVIDIA_DRIVER_CAPABILITIES=compute,utility,video
+      # Application-level config
+      - MAX_UPLOAD_SIZE_MB=100
+      - UPLOAD_DIR=/app/uploads
+
+    # Restart policy: restart on failure, but not on manual stop
+    restart: unless-stopped

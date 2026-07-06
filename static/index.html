@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Remove watermarks from videos using AI-powered inpainting. Upload, mask, and process — all locally.">
+
+    <!-- Security: Content Security Policy -->
+    <!-- TODO(security): Move CSP to server-side header in production -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' blob: data:; connect-src 'self'; object-src 'none';">
+
+    <title>WatermarkAI — Video Watermark Remover</title>
+
+    <!-- Typography: Inter from Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <!-- ================================================================= -->
+    <!-- Background ambient glow elements (purely decorative)              -->
+    <!-- ================================================================= -->
+    <div class="ambient-glow ambient-glow--1" aria-hidden="true"></div>
+    <div class="ambient-glow ambient-glow--2" aria-hidden="true"></div>
+
+    <!-- ================================================================= -->
+    <!-- Main Application Container                                        -->
+    <!-- ================================================================= -->
+    <main class="app" id="app-container">
+
+        <!-- ------------------------------------------------------------- -->
+        <!-- Header / Branding                                             -->
+        <!-- ------------------------------------------------------------- -->
+        <header class="header">
+            <div class="header__logo">
+                <span class="header__icon" aria-hidden="true"></span>
+                <h1 class="header__title">Watermark<span class="header__title--accent">AI</span></h1>
+            </div>
+            <p class="header__subtitle">AI-Powered Video Watermark Removal — 100% Local Processing</p>
+        </header>
+
+        <!-- ------------------------------------------------------------- -->
+        <!-- Step 1: Upload                                                -->
+        <!-- ------------------------------------------------------------- -->
+        <section class="step-section" id="section-upload">
+            <div class="step-badge">
+                <span class="step-badge__number">1</span>
+                <span class="step-badge__label">Upload Video</span>
+            </div>
+
+            <div class="upload-zone" id="upload-zone" role="button" tabindex="0"
+                 aria-label="Drag and drop or click to upload a video file">
+                <div class="upload-zone__content" id="upload-zone-content">
+                    <div class="upload-zone__icon" aria-hidden="true">
+                        <!-- Upload cloud icon rendered via CSS -->
+                    </div>
+                    <p class="upload-zone__text">
+                        <strong>Drag & drop</strong> your video here
+                    </p>
+                    <p class="upload-zone__subtext">or click to browse · MP4, AVI, MOV, MKV, WebM · Max 100 MB</p>
+                </div>
+                <div class="upload-zone__progress" id="upload-progress" hidden>
+                    <div class="upload-zone__spinner" aria-hidden="true"></div>
+                    <p class="upload-zone__uploading-text" id="upload-status-text">Uploading…</p>
+                </div>
+                <!-- Hidden file input (triggered by click on the zone) -->
+                <input type="file" id="file-input" accept=".mp4,.avi,.mov,.mkv,.webm" hidden>
+            </div>
+        </section>
+
+        <!-- ------------------------------------------------------------- -->
+        <!-- Step 2: Mask Editor                                           -->
+        <!-- ------------------------------------------------------------- -->
+        <section class="step-section step-section--hidden" id="section-mask">
+            <div class="step-badge">
+                <span class="step-badge__number">2</span>
+                <span class="step-badge__label">Mark the Watermark</span>
+            </div>
+            <p class="step-description">Paint over the watermark area with the brush. White = area to remove.</p>
+
+            <!-- Brush controls toolbar -->
+            <div class="toolbar" id="toolbar">
+                <div class="toolbar__group">
+                    <label class="toolbar__label" for="brush-size">Brush Size</label>
+                    <input type="range" id="brush-size" class="toolbar__slider" min="5" max="80" value="20">
+                    <span class="toolbar__value" id="brush-size-value">20px</span>
+                </div>
+                <div class="toolbar__group">
+                    <button class="toolbar__btn" id="btn-undo" aria-label="Undo last stroke">
+                        Undo
+                    </button>
+                    <button class="toolbar__btn toolbar__btn--danger" id="btn-clear" aria-label="Clear all mask strokes">
+                        Clear
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas container (video frame + mask overlay) -->
+            <div class="canvas-container" id="canvas-container">
+                <canvas id="canvas-frame" aria-label="Video frame preview"></canvas>
+                <canvas id="canvas-mask" aria-label="Watermark mask drawing surface"></canvas>
+            </div>
+
+            <!-- Process button -->
+            <button class="btn-primary" id="btn-process" aria-label="Start watermark removal">
+                <span class="btn-primary__icon" aria-hidden="true"></span>
+                Process Video
+            </button>
+        </section>
+
+        <!-- ------------------------------------------------------------- -->
+        <!-- Step 3: Processing Status                                     -->
+        <!-- ------------------------------------------------------------- -->
+        <section class="step-section step-section--hidden" id="section-status">
+            <div class="step-badge">
+                <span class="step-badge__number">3</span>
+                <span class="step-badge__label">Processing</span>
+            </div>
+
+            <div class="progress-container" id="progress-container">
+                <div class="progress-bar">
+                    <div class="progress-bar__fill" id="progress-bar-fill"></div>
+                </div>
+                <p class="progress-text" id="progress-text">Initializing…</p>
+                <p class="progress-detail" id="progress-detail">Your video is being processed locally using AI inpainting.</p>
+            </div>
+        </section>
+
+        <!-- ------------------------------------------------------------- -->
+        <!-- Step 4: Download                                              -->
+        <!-- ------------------------------------------------------------- -->
+        <section class="step-section step-section--hidden" id="section-download">
+            <div class="step-badge step-badge--complete">
+                <span class="step-badge__number">✓</span>
+                <span class="step-badge__label">Complete</span>
+            </div>
+
+            <div class="download-container" id="download-container">
+                <div class="download-container__icon" aria-hidden="true"></div>
+                <h2 class="download-container__title">Watermark Removed!</h2>
+                <p class="download-container__text">Your processed video is ready for download.</p>
+                <a class="btn-primary btn-primary--download" id="btn-download" href="#" download aria-label="Download processed video">
+                    Download Video
+                </a>
+                <button class="btn-secondary" id="btn-new" aria-label="Process another video">
+                    Process Another Video
+                </button>
+            </div>
+        </section>
+
+        <!-- ------------------------------------------------------------- -->
+        <!-- Error Toast (hidden by default)                               -->
+        <!-- ------------------------------------------------------------- -->
+        <div class="toast toast--error" id="toast-error" role="alert" hidden>
+            <span class="toast__icon" aria-hidden="true">!</span>
+            <span class="toast__message" id="toast-message">An error occurred.</span>
+            <button class="toast__close" id="toast-close" aria-label="Dismiss error">&times;</button>
+        </div>
+
+    </main>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+# =============================================================================
+# Python Dependencies - Video Watermark Removal Application
+# =============================================================================
+
+# --- Web Framework ---
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+
+# --- File upload support for FastAPI ---
+python-multipart==0.0.20
+
+# --- Video processing (FFmpeg wrapper) ---
+ffmpeg-python==0.2.0
+
+# --- AI / Deep Learning ---
+# PyTorch with CUDA 11.8 support (installed via pip with index-url)
+# NOTE: For GPU support, install torch separately with:
+#   pip install torch torchvision --index-url https://download.pytorch.org/whl/cu118
+# For the mock/scaffold version, CPU-only torch is sufficient.
+torch>=2.0.0
+torchvision>=0.15.0
+
+# --- Image processing ---
+opencv-python-headless==4.10.0.84
+numpy>=1.24.0
+Pillow>=10.0.0
