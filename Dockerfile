@@ -24,6 +24,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ffmpeg \
     libgl1 \
     libglib2.0-0 \
+    wget \
     && rm -rf /var/lib/apt/lists/*
 
 # ---------------------------------------------------------------------------
@@ -41,6 +42,10 @@ COPY . .
 
 # Create the uploads directory for video processing artifacts
 RUN mkdir -p /app/uploads
+
+# Download the ESPCN 2x Super Resolution model
+RUN mkdir -p /app/models && \
+    wget -qO /app/models/ESPCN_x2.pb https://raw.githubusercontent.com/fannymonori/TF-ESPCN/master/export/ESPCN_x2.pb
 
 # ---------------------------------------------------------------------------
 # Runtime configuration

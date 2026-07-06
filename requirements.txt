@@ -13,6 +13,6 @@ python-multipart==0.0.20
 ffmpeg-python==0.2.0
 
 # --- Image processing (OpenCV Telea inpainting engine) ---
-opencv-python-headless==4.10.0.84
+opencv-contrib-python-headless==4.10.0.84
 numpy>=1.24.0
 Pillow>=10.0.0

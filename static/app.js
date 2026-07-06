@@ -55,6 +55,7 @@ const elements = {
     btnClear:       document.getElementById("btn-clear"),
 
     // Actions
+    toggleEnhance: document.getElementById("toggle-enhance"),
     btnProcess:  document.getElementById("btn-process"),
     btnDownload: document.getElementById("btn-download"),
     btnNew:      document.getElementById("btn-new"),
@@ -590,10 +591,12 @@ async function startProcessing() {
 
         // Submit the mask to the backend
         const formData = new FormData();
+        formData.append("task_id", state.taskId);
         formData.append("mask", maskBlob, "mask.png");
+        formData.append("enhance", elements.toggleEnhance.checked);
 
         const response = await fetch(
-            "/process?task_id=" + encodeURIComponent(state.taskId),
+            "/process",
             {
                 method: "POST",
                 body: formData,

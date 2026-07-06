@@ -31,6 +31,7 @@ from pathlib import Path
 from fastapi import (
     FastAPI,
     File,
+    Form,
     UploadFile,
     BackgroundTasks,
     HTTPException,
@@ -287,8 +288,9 @@ async def get_video(task_id: str):
 @app.post("/process")
 async def process_video(
     background_tasks: BackgroundTasks,
-    task_id: str = "",
+    task_id: str = Form(...),
     mask: UploadFile = File(...),
+    enhance: bool = Form(False),
 ):
     """
     Start the watermark removal process.
@@ -360,6 +362,7 @@ async def process_video(
         task_store[task_id]["video_path"],
         str(mask_path),
         str(task_dir),
+        enhance,
     )
 
     logger.info("Started processing pipeline for task %s", task_id)
@@ -456,6 +459,7 @@ def _run_processing_pipeline(
     video_path: str,
     mask_path: str,
     task_dir: str,
+    enhance: bool,
 ):
     """
     Execute the full watermark removal pipeline as a background task.
@@ -498,6 +502,7 @@ def _run_processing_pipeline(
             mask_path=mask_path,
             output_dir=output_frames_dir,
             progress_callback=progress_callback,
+            enhance=enhance,
         )
         logger.info("[%s] Inpainting complete.", task_id)
 

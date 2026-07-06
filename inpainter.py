@@ -25,6 +25,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from typing import Callable, Optional
 
 import cv2
+from cv2 import dnn_superres
 import numpy as np
 
 logger = logging.getLogger("watermark-app.inpainter")
@@ -36,18 +37,35 @@ INPAINT_RADIUS = 5
 # Maximum number of worker processes. os.cpu_count() returns logical cores.
 MAX_WORKERS = max(1, (os.cpu_count() or 2) - 1)
 
+# Global reference to the super-resolution model (per worker process)
+_sr_model = None
+
+def _init_worker():
+    """
+    Initializer for ProcessPoolExecutor workers.
+    Loads the Super Resolution model once per worker to avoid loading overhead on every frame.
+    """
+    global _sr_model
+    model_path = "/app/models/ESPCN_x2.pb"
+    if os.path.exists(model_path):
+        _sr_model = dnn_superres.DnnSuperResImpl_create()
+        _sr_model.readModel(model_path)
+        _sr_model.setModel("espcn", 2)
+    else:
+        _sr_model = None
+
 
 def _inpaint_single_frame(args: tuple) -> tuple:
     """
     Inpaint a single frame. This function runs in a worker process.
 
     Args:
-        args: Tuple of (frame_path, mask_path, output_path)
+        args: Tuple of (frame_path, mask_path, output_path, enhance)
 
     Returns:
         (output_path, success, error_message)
     """
-    frame_path, mask_path, output_path = args
+    frame_path, mask_path, output_path, enhance = args
 
     try:
         # Read the frame in BGR
@@ -72,6 +90,10 @@ def _inpaint_single_frame(args: tuple) -> tuple:
         # Apply Telea inpainting
         result = cv2.inpaint(frame, mask_bin, INPAINT_RADIUS, cv2.INPAINT_TELEA)
 
+        # Apply AI Upscaling if requested
+        if enhance and _sr_model is not None:
+            result = _sr_model.upsample(result)
+
         # Save the inpainted frame
         cv2.imwrite(output_path, result)
         return (output_path, True, None)
@@ -85,6 +107,7 @@ def process_frames(
     mask_path: str,
     output_dir: str,
     progress_callback: Optional[Callable[[int, int], None]] = None,
+    enhance: bool = False,
 ) -> None:
     """
     Run OpenCV Telea inpainting on all frames using multiprocessing.
@@ -122,18 +145,18 @@ def process_frames(
         total_frames, MAX_WORKERS,
     )
 
-    # Build the work items: (frame_path, mask_path, output_path)
+    # Build the work items: (frame_path, mask_path, output_path, enhance)
     work_items = []
     for fp in frame_files:
         fname = os.path.basename(fp)
         out_path = os.path.join(output_dir, fname)
-        work_items.append((fp, mask_path, out_path))
+        work_items.append((fp, mask_path, out_path, enhance))
 
     # Process frames in parallel
     completed = 0
     errors = []
 
-    with ProcessPoolExecutor(max_workers=MAX_WORKERS) as executor:
+    with ProcessPoolExecutor(max_workers=MAX_WORKERS, initializer=_init_worker) as executor:
         futures = {
             executor.submit(_inpaint_single_frame, item): item
             for item in work_items
