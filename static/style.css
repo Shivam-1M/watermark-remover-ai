@@ -558,23 +558,48 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
-/* Enhancement Toggle */
-.enhancement-toggle {
+/* Processing Settings */
+.settings-panel {
     display: flex;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
     gap: var(--space-md);
     margin-bottom: var(--space-xl);
-    padding: var(--space-md);
+    padding: var(--space-md) var(--space-lg);
     background: var(--color-bg-glass);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
 }
 
-.enhancement-toggle__label {
+.settings-group {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+}
+
+.settings-group--toggle {
+    justify-content: flex-start;
+}
+
+.settings-label {
     font-size: var(--font-size-md);
     font-weight: 500;
     color: var(--color-text);
+}
+
+.settings-select {
+    padding: var(--space-xs) var(--space-sm);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-sm);
+    background-color: var(--color-bg);
+    color: var(--color-text);
+    font-size: var(--font-size-sm);
+    font-family: inherit;
+    cursor: pointer;
+    outline: none;
+}
+.settings-select:focus {
+    border-color: var(--color-primary);
 }
 
 .switch {

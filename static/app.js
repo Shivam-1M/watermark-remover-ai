@@ -55,6 +55,7 @@ const elements = {
     btnClear:       document.getElementById("btn-clear"),
 
     // Actions
+    selectAlgorithm: document.getElementById("select-algorithm"),
     toggleEnhance: document.getElementById("toggle-enhance"),
     btnProcess:  document.getElementById("btn-process"),
     btnDownload: document.getElementById("btn-download"),
@@ -594,6 +595,7 @@ async function startProcessing() {
         formData.append("task_id", state.taskId);
         formData.append("mask", maskBlob, "mask.png");
         formData.append("enhance", elements.toggleEnhance.checked);
+        formData.append("inpaint_mode", elements.selectAlgorithm.value);
 
         const response = await fetch(
             "/process",

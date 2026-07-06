@@ -291,6 +291,7 @@ async def process_video(
     task_id: str = Form(...),
     mask: UploadFile = File(...),
     enhance: bool = Form(False),
+    inpaint_mode: str = Form("telea"),
 ):
     """
     Start the watermark removal process.
@@ -363,6 +364,7 @@ async def process_video(
         str(mask_path),
         str(task_dir),
         enhance,
+        inpaint_mode,
     )
 
     logger.info("Started processing pipeline for task %s", task_id)
@@ -460,6 +462,7 @@ def _run_processing_pipeline(
     mask_path: str,
     task_dir: str,
     enhance: bool,
+    inpaint_mode: str,
 ):
     """
     Execute the full watermark removal pipeline as a background task.
@@ -503,6 +506,7 @@ def _run_processing_pipeline(
             output_dir=output_frames_dir,
             progress_callback=progress_callback,
             enhance=enhance,
+            inpaint_mode=inpaint_mode,
         )
         logger.info("[%s] Inpainting complete.", task_id)
 

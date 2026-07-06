@@ -17,7 +17,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="/static/style.css?v=3.0.3">
+    <link rel="stylesheet" href="/static/style.css?v=3.0.4">
 </head>
 <body>
     <!-- ================================================================= -->
@@ -113,15 +113,24 @@
                 <span class="video-controls__time" id="video-time">0:00 / 0:00</span>
             </div>
 
-            <!-- Enhancement Toggle -->
-            <div class="enhancement-toggle">
-                <label class="switch" aria-label="Toggle AI Enhancement">
-                    <input type="checkbox" id="toggle-enhance">
-                    <span class="switch-slider"></span>
-                </label>
-                <span class="enhancement-toggle__label">
-                    Enhance Video (AI Upscale 2x)
-                </span>
+            <!-- Processing Settings -->
+            <div class="settings-panel">
+                <div class="settings-group">
+                    <label for="select-algorithm" class="settings-label">Inpainting Algorithm:</label>
+                    <select id="select-algorithm" class="settings-select" aria-label="Select Inpainting Algorithm">
+                        <option value="telea">Smooth (Fast)</option>
+                        <option value="shiftmap">Texture-Aware (Slower)</option>
+                    </select>
+                </div>
+                <div class="settings-group settings-group--toggle">
+                    <label class="switch" aria-label="Toggle AI Enhancement">
+                        <input type="checkbox" id="toggle-enhance">
+                        <span class="switch-slider"></span>
+                    </label>
+                    <span class="settings-label">
+                        Enhance Video (AI Upscale 2x)
+                    </span>
+                </div>
             </div>
 
             <!-- Process button -->
@@ -182,6 +191,6 @@
 
     </main>
 
-    <script src="/static/app.js?v=3.0.3"></script>
+    <script src="/static/app.js?v=3.0.4"></script>
 </body>
 </html>

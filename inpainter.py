@@ -60,12 +60,12 @@ def _inpaint_single_frame(args: tuple) -> tuple:
     Inpaint a single frame. This function runs in a worker process.
 
     Args:
-        args: Tuple of (frame_path, mask_path, output_path, enhance)
+        args: Tuple of (frame_path, mask_path, output_path, enhance, inpaint_mode)
 
     Returns:
         (output_path, success, error_message)
     """
-    frame_path, mask_path, output_path, enhance = args
+    frame_path, mask_path, output_path, enhance, inpaint_mode = args
 
     try:
         # Read the frame in BGR
@@ -87,8 +87,15 @@ def _inpaint_single_frame(args: tuple) -> tuple:
         # Threshold to ensure binary mask (0 or 255)
         _, mask_bin = cv2.threshold(mask, 127, 255, cv2.THRESH_BINARY)
 
-        # Apply Telea inpainting
-        result = cv2.inpaint(frame, mask_bin, INPAINT_RADIUS, cv2.INPAINT_TELEA)
+        # Apply Inpainting
+        if inpaint_mode == "shiftmap":
+            # Shiftmap requires valid pixels to be 255 and missing pixels to be 0
+            inverted_mask = cv2.bitwise_not(mask_bin)
+            result = np.zeros_like(frame)
+            cv2.xphoto.inpaint(frame, inverted_mask, result, cv2.xphoto.INPAINT_SHIFTMAP)
+        else:
+            # Telea method (default)
+            result = cv2.inpaint(frame, mask_bin, INPAINT_RADIUS, cv2.INPAINT_TELEA)
 
         # Apply AI Upscaling if requested
         if enhance and _sr_model is not None:
@@ -108,6 +115,7 @@ def process_frames(
     output_dir: str,
     progress_callback: Optional[Callable[[int, int], None]] = None,
     enhance: bool = False,
+    inpaint_mode: str = "telea",
 ) -> None:
     """
     Run OpenCV Telea inpainting on all frames using multiprocessing.
@@ -145,12 +153,12 @@ def process_frames(
         total_frames, MAX_WORKERS,
     )
 
-    # Build the work items: (frame_path, mask_path, output_path, enhance)
+    # Build the work items
     work_items = []
     for fp in frame_files:
         fname = os.path.basename(fp)
         out_path = os.path.join(output_dir, fname)
-        work_items.append((fp, mask_path, out_path, enhance))
+        work_items.append((fp, mask_path, out_path, enhance, inpaint_mode))
 
     # Process frames in parallel
     completed = 0
