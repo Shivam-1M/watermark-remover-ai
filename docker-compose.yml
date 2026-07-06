@@ -28,6 +28,8 @@ services:
     volumes:
       - ./uploads:/app/uploads
       - ./static:/app/static
+      - ./main.py:/app/main.py
+      - ./inpainter.py:/app/inpainter.py
 
     # -------------------------------------------------------------------------
     # Environment variables

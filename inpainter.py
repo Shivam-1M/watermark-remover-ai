@@ -304,11 +304,10 @@ def process_frames(
     # ------------------------------------------------------------------ #
     # 5. Convert to tensors                                               #
     # ------------------------------------------------------------------ #
-    # frames_tensor  shape: [T, 3, H, W],  values in [0, 1]
+    # frames_tensor  shape: [T, 3, H, W],  values in [-1, 1]
     # flow_masks_t   shape: [T, 1, H, W],  binary 0/1
     # masks_dilated_t shape: [T, 1, H, W], binary 0/1
-    frames_tensor = to_tensors()(frames_resized).unsqueeze(0).to(DEVICE)
-    # to_tensors returns [T, C, H, W]; we add batch dim → [1, T, C, H, W]
+    frames_tensor = to_tensors()(frames_resized).unsqueeze(0).to(DEVICE) * 2.0 - 1.0
 
     flow_masks_tensor = to_tensors()(flow_masks).unsqueeze(0).to(DEVICE)
     masks_dilated_tensor = to_tensors()(masks_dilated).unsqueeze(0).to(DEVICE)
@@ -325,11 +324,9 @@ def process_frames(
     # 6. Optical flow computation (RAFT)                                  #
     # ------------------------------------------------------------------ #
     with torch.no_grad():
-        # RAFT_bi expects frames as a list of [1, 3, H, W] tensors in [0,1]
-        # frames_tensor is [1, T, 3, H, W] — extract the T dim
-        frame_list = [frames_tensor[0, i].unsqueeze(0) for i in range(total_frames)]
+        # RAFT_bi expects frames as a tensor of shape [1, T, 3, H, W] in [-1, 1]
         # flow shape: [1, T, 2, H, W] — forward and backward flows
-        pred_flows_bi, _ = _raft_model(frame_list, iters=20)
+        pred_flows_bi, _ = _raft_model(frames_tensor, iters=20)
 
     logger.info("Optical flow computed.")
 
