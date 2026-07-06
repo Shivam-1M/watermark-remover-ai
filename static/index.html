@@ -17,7 +17,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <link rel="stylesheet" href="/static/style.css?v=3.0.4">
+    <link rel="stylesheet" href="/static/style.css?v=3.0.5">
 </head>
 <body>
     <!-- ================================================================= -->
@@ -113,6 +113,20 @@
                 <span class="video-controls__time" id="video-time">0:00 / 0:00</span>
             </div>
 
+            <!-- Logo Upload -->
+            <div class="logo-upload-panel">
+                <label for="file-logo" class="logo-upload__label">
+                    Add Brand Logo Over Watermark (Optional)
+                </label>
+                <div class="logo-upload__input-group">
+                    <input type="file" id="file-logo" accept=".png,.jpg,.jpeg" class="logo-upload__input">
+                    <div id="logo-preview-container" class="logo-preview-container" hidden>
+                        <img id="logo-preview" class="logo-preview" alt="Logo preview">
+                        <button class="btn-clear-logo" id="btn-clear-logo" aria-label="Remove logo">✕</button>
+                    </div>
+                </div>
+            </div>
+
             <!-- Processing Settings -->
             <div class="settings-panel">
                 <div class="settings-group">
@@ -191,6 +205,6 @@
 
     </main>
 
-    <script src="/static/app.js?v=3.0.4"></script>
+    <script src="/static/app.js?v=3.0.5"></script>
 </body>
 </html>

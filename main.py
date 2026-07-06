@@ -42,6 +42,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 import video_utils
 import inpainter
+import cv2
+from PIL import Image
 
 # ---------------------------------------------------------------------------
 # Logging configuration
@@ -290,6 +292,7 @@ async def process_video(
     background_tasks: BackgroundTasks,
     task_id: str = Form(...),
     mask: UploadFile = File(...),
+    logo: UploadFile = File(None),
     enhance: bool = Form(False),
     inpaint_mode: str = Form("telea"),
 ):
@@ -353,6 +356,26 @@ async def process_video(
         logger.error("Mask save failed for task %s: %s", task_id, str(e))
         raise HTTPException(status_code=500, detail="Failed to save mask.")
 
+    # --- Save the optional logo image ---
+    logo_path = None
+    if logo and logo.filename:
+        logo_ext = Path(logo.filename).suffix.lower()
+        # Basic validation, allow png/jpg
+        if logo_ext in [".png", ".jpg", ".jpeg"]:
+            logo_path = task_dir / f"logo{logo_ext}"
+            try:
+                logo_data = await logo.read()
+                if len(logo_data) > 10 * 1024 * 1024:
+                    raise HTTPException(status_code=413, detail="Logo file too large.")
+                with open(logo_path, "wb") as f:
+                    f.write(logo_data)
+            except HTTPException:
+                raise
+            except Exception as e:
+                logger.error("Logo save failed for task %s: %s", task_id, str(e))
+                # Not critical, we can still process without logo
+                logo_path = None
+
     # --- Update task status and launch background processing ---
     task_store[task_id]["status"] = "processing"
     task_store[task_id]["progress"] = 0
@@ -362,6 +385,7 @@ async def process_video(
         task_id,
         task_store[task_id]["video_path"],
         str(mask_path),
+        str(logo_path) if logo_path else None,
         str(task_dir),
         enhance,
         inpaint_mode,
@@ -451,6 +475,60 @@ async def download_video(task_id: str):
     )
 
 
+def prepare_overlay(mask_path: str, logo_path: str, overlay_path: str) -> None:
+    """
+    Reads the mask to find the bounding box of the watermark.
+    Resizes the logo to fit the bounding box, maintaining aspect ratio.
+    Pastes the logo into a full-frame transparent image.
+    """
+    # 1. Find mask bounding box
+    mask_cv = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+    if mask_cv is None:
+        logger.error("Failed to read mask for overlay placement.")
+        return
+
+    # Threshold to ensure binary
+    _, mask_bin = cv2.threshold(mask_cv, 127, 255, cv2.THRESH_BINARY)
+    points = cv2.findNonZero(mask_bin)
+    
+    if points is None:
+        logger.warning("Mask is completely empty. Cannot place logo.")
+        return
+        
+    x, y, w, h = cv2.boundingRect(points)
+    mask_h, mask_w = mask_cv.shape[:2]
+
+    # 2. Process Logo
+    try:
+        logo_img = Image.open(logo_path).convert("RGBA")
+    except Exception as e:
+        logger.error("Failed to open logo image: %s", str(e))
+        return
+
+    logo_w, logo_h = logo_img.size
+
+    # Calculate scale factor to fit inside (w, h)
+    scale_w = w / logo_w
+    scale_h = h / logo_h
+    scale = min(scale_w, scale_h)
+
+    new_w = max(1, int(logo_w * scale))
+    new_h = max(1, int(logo_h * scale))
+
+    logo_img = logo_img.resize((new_w, new_h), Image.Resampling.LANCZOS)
+
+    # 3. Create full-frame transparent overlay and paste logo
+    overlay_img = Image.new("RGBA", (mask_w, mask_h), (0, 0, 0, 0))
+    
+    # Center it in the bounding box
+    paste_x = x + (w - new_w) // 2
+    paste_y = y + (h - new_h) // 2
+    
+    overlay_img.paste(logo_img, (paste_x, paste_y), logo_img)
+    overlay_img.save(overlay_path, "PNG")
+    logger.info("Successfully prepared logo overlay at %s", overlay_path)
+
+
 # =============================================================================
 # Background Processing Pipeline
 # =============================================================================
@@ -460,6 +538,7 @@ def _run_processing_pipeline(
     task_id: str,
     video_path: str,
     mask_path: str,
+    logo_path: str | None,
     task_dir: str,
     enhance: bool,
     inpaint_mode: str,
@@ -510,9 +589,17 @@ def _run_processing_pipeline(
         )
         logger.info("[%s] Inpainting complete.", task_id)
 
-        # --- Stage 4: Reassemble video with audio ---
+        # --- Stage 4: Reassemble video with audio and optional logo ---
         task_store[task_id]["progress"] = 90
         output_path = os.path.join(task_dir, "output.mp4")
+        overlay_path = None
+
+        if logo_path and os.path.isfile(logo_path):
+            overlay_path = os.path.join(task_dir, "overlay.png")
+            prepare_overlay(mask_path, logo_path, overlay_path)
+            # If prepare_overlay failed, it won't write the file
+            if not os.path.isfile(overlay_path):
+                overlay_path = None
 
         # Get the original video's FPS for accurate reassembly
         fps = video_utils.get_video_fps(video_path)
@@ -522,6 +609,7 @@ def _run_processing_pipeline(
             audio_path=audio_path,
             output_path=output_path,
             fps=fps,
+            overlay_path=overlay_path,
         )
         logger.info("[%s] Video reassembled.", task_id)
 

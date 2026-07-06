@@ -55,6 +55,10 @@ const elements = {
     btnClear:       document.getElementById("btn-clear"),
 
     // Actions
+    fileLogo: document.getElementById("file-logo"),
+    logoPreviewContainer: document.getElementById("logo-preview-container"),
+    logoPreview: document.getElementById("logo-preview"),
+    btnClearLogo: document.getElementById("btn-clear-logo"),
     selectAlgorithm: document.getElementById("select-algorithm"),
     toggleEnhance: document.getElementById("toggle-enhance"),
     btnProcess:  document.getElementById("btn-process"),
@@ -166,6 +170,22 @@ function setupUploadZone() {
         if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
             handleFileUpload(e.dataTransfer.files[0]);
         }
+    });
+
+    // --- Logo Upload Listeners ---
+    elements.fileLogo.addEventListener("change", (e) => {
+        if (e.target.files && e.target.files.length > 0) {
+            const file = e.target.files[0];
+            const url = URL.createObjectURL(file);
+            elements.logoPreview.src = url;
+            elements.logoPreviewContainer.hidden = false;
+        }
+    });
+
+    elements.btnClearLogo.addEventListener("click", () => {
+        elements.fileLogo.value = "";
+        elements.logoPreviewContainer.hidden = true;
+        elements.logoPreview.src = "";
     });
 }
 
@@ -596,6 +616,10 @@ async function startProcessing() {
         formData.append("mask", maskBlob, "mask.png");
         formData.append("enhance", elements.toggleEnhance.checked);
         formData.append("inpaint_mode", elements.selectAlgorithm.value);
+
+        if (elements.fileLogo.files && elements.fileLogo.files.length > 0) {
+            formData.append("logo", elements.fileLogo.files[0]);
+        }
 
         const response = await fetch(
             "/process",

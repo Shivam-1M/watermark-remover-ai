@@ -164,6 +164,7 @@ def reassemble_video(
     audio_path: str,
     output_path: str,
     fps: float = 30.0,
+    overlay_path: str | None = None,
 ) -> None:
     """
     Reassemble PNG frames into an MP4 video and remux the original audio.
@@ -190,19 +191,29 @@ def reassemble_video(
     )
 
     try:
+        # Base video stream
+        video_input = ffmpeg.input(
+            frame_pattern,
+            framerate=fps,
+            format="image2",
+        )
+
+        # Apply overlay filter if a valid overlay image is provided
+        if overlay_path and os.path.isfile(overlay_path):
+            overlay_input = ffmpeg.input(overlay_path)
+            video_stream = ffmpeg.overlay(video_input, overlay_input)
+            logger.info("Applying logo overlay filter via FFmpeg.")
+        else:
+            video_stream = video_input
+
         if has_audio:
             # --- Reassemble with audio ---
-            video_input = ffmpeg.input(
-                frame_pattern,
-                framerate=fps,
-                format="image2",
-            )
             audio_input = ffmpeg.input(audio_path)
 
             (
                 ffmpeg
                 .output(
-                    video_input,
+                    video_stream,
                     audio_input,
                     output_path,
                     vcodec="libx264",     # H.264 encoder
@@ -220,12 +231,8 @@ def reassemble_video(
             logger.info("Reassembling video without audio track.")
             (
                 ffmpeg
-                .input(
-                    frame_pattern,
-                    framerate=fps,
-                    format="image2",
-                )
                 .output(
+                    video_stream,
                     output_path,
                     vcodec="libx264",
                     pix_fmt="yuv420p",
